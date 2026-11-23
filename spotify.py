@@ -127,6 +127,9 @@ tabA = pd.DataFrame(rowsA)
 print(tabA.to_string(index=False))
 RES["setting_A"] = tabA.to_dict(orient="records")
 RES["H1_pass"] = bool(tabA.pass_.all())
+# The paper's BF rates (0.019, 0.016) are about twice my directional rates. Counting a crossing in either direction:
+RES["bf_any_direction"] = {V: float((bf_normal(d0, 2.0 / looks, V) > THR).any(1).mean()) for V in (0.2, 0.4)}
+print("BF crossing in either direction:", RES["bf_any_direction"])
 
 # %% [markdown]
 # ## Part 1. Setting B: Bayes factor stopping vs group sequential testing
@@ -445,3 +448,34 @@ def clean(o):
     return o
 json.dump(clean(RES), open("figures/results.json", "w"), indent=1)
 print({k: RES[k]["pass_"] if isinstance(RES[k], dict) and "pass_" in RES[k] else RES[k] for k in ["H1_pass", "H2", "H4", "H5", "H6"]}, "H3", RES["setting_C"]["H3_pass"])
+
+# %% [markdown]
+# ## Scorecard
+
+# %%
+
+def scorecard(rows, title, path):
+    """rows: (id, claim, test, result, verdict). Verdict colors: Pass green, Fail red, other amber."""
+    colors = {"Pass": "#2f855a", "Fail": "#c53030"}
+    fig, ax = plt.subplots(figsize=(10, 0.48 * len(rows) + 1.0)); ax.axis("off")
+    heads = ["", "Claim", "Pre-registered test", "Result", "Verdict"]
+    xs = [0.0, 0.05, 0.40, 0.70, 0.93]
+    y = 1.0; step = 1.0 / (len(rows) + 1.3)
+    for x, h in zip(xs, heads): ax.text(x, y, h, fontsize=9, fontweight="bold", va="top", transform=ax.transAxes)
+    for r in rows:
+        y -= step
+        ax.plot([0, 1], [y + step * 0.25] * 2, color="#e2e8f0", lw=0.8, transform=ax.transAxes)
+        for x, t in zip(xs[:4], r[:4]): ax.text(x, y, t, fontsize=8.5, va="top", transform=ax.transAxes, wrap=True)
+        ax.text(xs[4], y, r[4], fontsize=9, fontweight="bold", va="top", color=colors.get(r[4].split()[0], "#b7791f"), transform=ax.transAxes)
+    ax.set_title(title, fontsize=10, loc="left")
+    fig.tight_layout(); fig.savefig(path, dpi=200, bbox_inches="tight")
+
+A_ = {r["rule"]: r for r in RES["setting_A"]}; B_ = {r["method"]: r for r in RES["setting_B"]}
+scorecard([
+    ("H1", "Flat-prior Bayes = naive peeking", "My FPRs within 0.015 of the paper", f"{A_['flat_p95']['my_fpr']*100:.1f}% vs 30.3%; BF {A_['bf_0.2']['my_fpr']*100:.1f}% vs 1.9%", "Pass"),
+    ("H2", "GST beats BF on power; right prior best on error", "All three orderings hold", f"Power {B_['GST 14 looks']['power']:.3f} vs {B_['BF EB oracle']['power']:.3f}; MSE {B_['BF EB oracle']['mse_x1000']:.1f} lowest", "Pass"),
+    ("H3", "Winner-only corpus inflates FPR for good", "FPR 10% to 30%, not falling with size", "19% to 20% from 10 to 500 experiments", "Pass"),
+    ("H4", "BF stopping safe on a skewed real metric", "FPR at or below 5%", f"{RES['H4']['table'][4]['fpr']*100:.2f}%", "Pass"),
+    ("H5", "Early stopping inflates novelty more", "BF bias > GST bias, CI above 0", f"+{RES['H5']['relbias_bf_postmean']*100:.0f}% vs +{RES['H5']['relbias_gst']*100:.0f}%", "Pass"),
+    ("H6", "Shrinkage fixes winner's curse only with right prior", "Right prior beats MLE; pooled prior worse than GST", "Bias 0.000 vs 0.073; MAE 0.104 vs 0.078", "Pass"),
+], "Spotify's Bayesian A/B claims: pre-registered tests and results", "figures/fig0_scorecard.png")

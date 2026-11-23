@@ -62,6 +62,10 @@
   }
  ],
  "H1_pass": true,
+ "bf_any_direction": {
+  "0.2": 0.0214,
+  "0.4": 0.0165
+ },
  "setting_B": [
   {
    "method": "GST 14 looks",
