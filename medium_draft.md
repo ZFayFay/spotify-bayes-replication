@@ -2,13 +2,13 @@
 
 ## I wrote down what I expected before running anything. One of my guesses was wrong.
 
-*Part of Big Tech measurement, rebuilt.*
+*Part 2 of Big Tech measurement, rebuilt.*
 
 Every few months someone on a product team asks why we don't just switch to Bayesian A/B testing. The pitch is always the same. You can look at the results whenever you want, the numbers are easier to explain, and you no longer have to worry about peeking. Most experimentation platforms now offer a Bayesian mode, so the question is a fair one.
 
 In September, two data scientists at Spotify, Mattias Frånberg and Mårten Schultzberg, published [a careful answer](https://engineering.atspotify.com/2026/9/why-spotify-is-not-using-bayesian-a-b-testing/) along with [a paper](https://arxiv.org/abs/2608.12949). Their argument is that "Bayesian A/B testing" is not one method. It is a choice of prior plus a choice of when to stop, and the most common default, a flat prior where you ship once the probability that B beats A passes 95%, behaves exactly like a frequentist who peeks every day. The configurations that do protect you, like stopping on a Bayes factor, exist, but they give you about the same guarantees as the group sequential tests Spotify already uses.
 
-I wanted to know two things. Do their numbers hold up if someone else writes the code? And do they still hold when the data looks like a real product metric instead of a textbook normal distribution?
+I wanted to know two things: whether their numbers hold up when someone else writes the code, and whether they still hold when the data looks like a real product metric instead of a textbook normal distribution.
 
 ## How I set it up
 
